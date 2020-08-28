@@ -20,6 +20,7 @@
 
 //*********************************************************************
 //Global variables
+
 File __audioFile[MAX_N_CHANNELS];
 volatile bool __audioPlaying[MAX_N_CHANNELS]={false};
 volatile bool __audioFileReady[MAX_N_CHANNELS] = {false};
@@ -30,9 +31,11 @@ uint8_t whichBuffer[MAX_N_CHANNELS]={0};
 volatile bool fillNextBuffer[MAX_N_CHANNELS]={true};
 volatile uint16_t __audioData;
 
+void (*__onSoundCompletion[MAX_N_CHANNELS])(void); //function pointer to users completion callback function
+
 SdFat SamdAudioSdFat;
 
-int __Volume;
+//int __Volume;
 bool __criticalSection = false;
 
 int __numOfChannelsUsed = 4;
@@ -41,9 +44,7 @@ int __numOfChannelsUsed = 4;
 void TC5_Handler (void) __attribute__ ((weak, alias("AudioPlay_Handler")));
 void TC3_Handler (void) __attribute__ ((weak, alias("AudioRead_Handler")));
 
-
 //*********************************************************************
-
 
 int SamdAudio::begin(uint32_t sampleRate, uint8_t numOfChannels, uint8_t chipSelect)
 {
@@ -71,6 +72,8 @@ int SamdAudio::begin(uint32_t sampleRate, uint8_t numOfChannels, uint8_t chipSel
     {
         __audioFileReady[index]=false;
         __SampleIndex[index]=0;
+
+        __onSoundCompletion[index] = NULL;
     }
     
     /*Modules configuration */
@@ -88,19 +91,7 @@ void SamdAudio::end() {
     analogWrite(A0, 0);
 }
 
-
-void SamdAudio::stopChannel(uint8_t c)
-{
-	//if(c>=0 && c<__numOfChannelsUsed) //unsigned, cant be less than zero
-    if(c<__numOfChannelsUsed)
-    {
-        __audioFileReady[c]=false;
-        __audioFile[c].close();
-        __SampleIndex[c]=0;
-        __audioPlaying[c]=false;
-    }
-}
-
+//*********************************************************************
 
 void SamdAudio::play(const char *fname, uint8_t channel) {
     
@@ -110,17 +101,17 @@ void SamdAudio::play(const char *fname, uint8_t channel) {
     
     disableReaderTimer();
     
-    
-    
     if(__audioFileReady[channel])
         __audioFile[channel].close();
+
     __audioFile[channel] = SamdAudioSdFat.open(fname);
-    if(!__audioFile[channel]){
+
+    if(!__audioFile[channel])
+    {
         //end();
         //SerialUSB.println("Error opening file");
         return;
     }
-    
     
     whichBuffer[channel]=0;
     fillNextBuffer[channel]=1;
@@ -142,6 +133,31 @@ void SamdAudio::play(const char *fname, uint8_t channel) {
     enableReaderTimer();
 }
 
+void SamdAudio::play(const char *fname, uint8_t channel, void (*functionToCallWhenComplete)(void))
+{
+	// assign the callback function pointer
+	__onSoundCompletion[channel] = functionToCallWhenComplete;
+
+	// pass the sound to be played
+	// will call callback when done
+	play(fname, channel);
+}
+
+
+void SamdAudio::stopChannel(uint8_t c)
+{
+	//if(c>=0 && c<__numOfChannelsUsed) //unsigned, cant be less than zero
+    if(c<__numOfChannelsUsed)
+    {
+        __audioFileReady[c]=false;
+        __audioFile[c].close();
+        __SampleIndex[c]=0;
+        __audioPlaying[c]=false;
+    }
+}
+
+//*********************************************************************
+
 bool SamdAudio::alonePlaying(uint8_t channel)
 {
     for(uint8_t index=0; index<__numOfChannelsUsed; index++)
@@ -161,6 +177,18 @@ bool __channelsPlaying()
     }
     return false;
 }
+
+//*********************************************************************
+
+void SamdAudio::criticalON() {
+    __criticalSection = true;
+}
+
+void SamdAudio::criticalOFF() {
+    __criticalSection = false;
+}
+
+//*********************************************************************
 
 /**
  * Configures the DAC in event triggered mode.
@@ -240,17 +268,6 @@ void SamdAudio::disablePlayerTimer()
     TC5->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
     while (syncPlayerTimer());
 }
-
-
-void SamdAudio::criticalON() {
-    __criticalSection = true;
-}
-
-void SamdAudio::criticalOFF() {
-    __criticalSection = false;
-}
-
-//SamdAudio AudioPlayer;
 
 
 void SamdAudio::configureReaderTimer()
@@ -363,8 +380,7 @@ void SamdAudio::disableReaderTimer()
 }
 
 
-
-
+//*********************************************************************
 
 #ifdef __cplusplus
 extern "C" {
@@ -427,6 +443,16 @@ extern "C" {
                             /* Wait for synchronization */
                         }
                         
+                    }
+
+                    // call this channels callback function when done if available
+                    if(__onSoundCompletion[index] != NULL)
+                    {
+                    	// call the callback function
+                    	__onSoundCompletion[index]();
+
+                    	// clear the callback function
+                    	__onSoundCompletion[index] = NULL;
                     }
                 }
             }

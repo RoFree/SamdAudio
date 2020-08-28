@@ -15,7 +15,7 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-	
+
 #ifndef SAMDAUDIO_H
 #define SAMDAUDIO_H
 
@@ -25,9 +25,7 @@
 	#include <SdFat.h>
 	#include <SPI.h>
 
-
 	//**********************************
-
 
 	//#define N_CHANNELS          1     //could be 1,2 or 4
 
@@ -44,16 +42,22 @@
 
 		SamdAudio(){};
 		int begin(uint32_t sampleRate, uint8_t numOfChannels, uint8_t chipSelect);
-		void play(const char *fname, uint8_t channel) ;
+		void end();
+
+		void play(const char *fname, uint8_t channel);
+		void play(const char *fname, uint8_t channel, void (*functionToCallWhenComplete)(void)) ;
+
 		//void play(const char *fname) ;
 		void stopChannel(uint8_t c);
-		void end();
 
 		void criticalON();
 		void criticalOFF();
 
-
 	private:
+
+		bool alonePlaying(uint8_t channel);
+		//bool someonePlaying();
+
 		void dacConfigure(void);
 
 		//The first timer is used to feed the DAC with data every 1/sampleRate sec
@@ -68,11 +72,7 @@
 		void enableReaderTimer();
 		void disableReaderTimer();
 
-		void updaterConfigure();
-
-		bool alonePlaying(uint8_t channel);
-		bool someonePlaying();
-
+		//void updaterConfigure();
 
 	};
 #endif //SAMDAUDIO_H
