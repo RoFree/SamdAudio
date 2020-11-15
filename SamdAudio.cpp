@@ -33,7 +33,7 @@ volatile uint16_t __audioData;
 
 void (*__onSoundCompletion[MAX_N_CHANNELS])(void); //function pointer to users completion callback function
 
-SdFat SamdAudioSdFat;
+SdFat* SamdAudioSdFat;
 
 //int __Volume;
 bool __criticalSection = false;
@@ -46,15 +46,10 @@ void TC3_Handler (void) __attribute__ ((weak, alias("AudioRead_Handler")));
 
 //*********************************************************************
 
-int SamdAudio::begin(uint32_t sampleRate, uint8_t numOfChannels, uint8_t chipSelect)
+int SamdAudio::begin(uint32_t sampleRate, uint8_t numOfChannels, SdFat* sdfatToUse)
 {
-    
-	// check if sd card is inserted and ready with no errors
-	if ( !SamdAudioSdFat.begin(chipSelect) )
-	{
-	   //the sd card error was found, exit this function and to not attempt to finish
-	   return -1;
-	}
+    // Initialize pointer back to already initialized sdfat object
+	SamdAudioSdFat = sdfatToUse;
 
 	if(numOfChannels == 1 || numOfChannels == 2 || numOfChannels == 4)
 	{
@@ -104,7 +99,7 @@ void SamdAudio::play(const char *fname, uint8_t channel) {
     if(__audioFileReady[channel])
         __audioFile[channel].close();
 
-    __audioFile[channel] = SamdAudioSdFat.open(fname);
+    __audioFile[channel] = SamdAudioSdFat->open(fname);
 
     if(!__audioFile[channel])
     {

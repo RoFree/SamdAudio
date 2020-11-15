@@ -41,7 +41,7 @@
 	public:
 
 		SamdAudio(){};
-		int begin(uint32_t sampleRate, uint8_t numOfChannels, uint8_t chipSelect);
+		int begin(uint32_t sampleRate, uint8_t numOfChannels, SdFat* sdfatToUse);
 		void end();
 
 		void play(const char *fname, uint8_t channel);
