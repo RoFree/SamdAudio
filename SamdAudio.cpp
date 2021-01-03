@@ -84,12 +84,19 @@ void SamdAudio::end() {
     resetPlayerTimer();
     disableReaderTimer();
     analogWrite(A0, 0);
+	
+	// disable the DAC so it doesn't leak noise
+    DAC->CTRLA.bit.ENABLE = 0x00;
 }
 
 //*********************************************************************
 
 void SamdAudio::play(char *fname, uint8_t channel) {
     
+	// enable the DAC again here since originally it is
+    // just done in dacConfigure
+    DAC->CTRLA.bit.ENABLE = 0x01;
+	
 	//if(channel<0 || channel>=__numOfChannelsUsed)//unsigned, cant be negative
     if(channel>=__numOfChannelsUsed)
         return;
