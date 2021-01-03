@@ -44,8 +44,8 @@
 		int begin(uint32_t sampleRate, uint8_t numOfChannels, SdFat* sdfatToUse);
 		void end();
 
-		void play(const char *fname, uint8_t channel);
-		void play(const char *fname, uint8_t channel, void (*functionToCallWhenComplete)(void)) ;
+		void play(char *fname, uint8_t channel);
+		void play(char *fname, uint8_t channel, void (*functionToCallWhenComplete)(void)) ;
 
 		//void play(const char *fname) ;
 		void stopChannel(uint8_t c);

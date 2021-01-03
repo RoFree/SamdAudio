@@ -58,8 +58,8 @@ int SamdAudio::begin(uint32_t sampleRate, uint8_t numOfChannels, SdFat* sdfatToU
 	}
 	else
 	{
-		// bad input passed, assume all 4 channels to be safe
-		__numOfChannelsUsed = 4;
+		// bad input passed, assume all channels to be safe
+		__numOfChannelsUsed = MAX_N_CHANNELS;
 	}
 	
 	// initialize arrays
@@ -88,7 +88,7 @@ void SamdAudio::end() {
 
 //*********************************************************************
 
-void SamdAudio::play(const char *fname, uint8_t channel) {
+void SamdAudio::play(char *fname, uint8_t channel) {
     
 	//if(channel<0 || channel>=__numOfChannelsUsed)//unsigned, cant be negative
     if(channel>=__numOfChannelsUsed)
@@ -128,7 +128,7 @@ void SamdAudio::play(const char *fname, uint8_t channel) {
     enableReaderTimer();
 }
 
-void SamdAudio::play(const char *fname, uint8_t channel, void (*functionToCallWhenComplete)(void))
+void SamdAudio::play(char *fname, uint8_t channel, void (*functionToCallWhenComplete)(void))
 {
 	// assign the callback function pointer
 	__onSoundCompletion[channel] = functionToCallWhenComplete;
